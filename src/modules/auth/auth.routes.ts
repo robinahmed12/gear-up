@@ -10,7 +10,7 @@ import {
 import { verifyTokenMiddleware } from '../../middlewares/auth.middleware';
 
 const router = Router();
-
+// auth related endpoint
 router.post('/register', validate(registerSchema), authController.register);
 router.post('/login', validate(loginSchema), authController.login);
 router.get('/me', verifyTokenMiddleware, authController.getMe);

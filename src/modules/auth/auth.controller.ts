@@ -4,6 +4,7 @@ import { sendSuccess } from '../../utils/ApiResponse';
 import * as authService from './auth.service';
 import { UnauthorizedError } from '../../errors/UnauthorizedError';
 
+// register user
 export const register = catchAsync(async (req: Request, res: Response) => {
   const { user, token } = await authService.registerUser(req.body);
 
@@ -14,6 +15,7 @@ export const register = catchAsync(async (req: Request, res: Response) => {
   });
 });
 
+// login user
 export const login = catchAsync(async (req: Request, res: Response) => {
   const { user, token } = await authService.loginUser(req.body);
 
@@ -24,6 +26,7 @@ export const login = catchAsync(async (req: Request, res: Response) => {
   });
 });
 
+// fetched logged in user details
 export const getMe = catchAsync(async (req: Request, res: Response) => {
   if (!req.user) {
     throw new UnauthorizedError('Authentication required');
@@ -38,6 +41,7 @@ export const getMe = catchAsync(async (req: Request, res: Response) => {
   });
 });
 
+// profile manage
 export const updateProfile = catchAsync(async (req: Request, res: Response) => {
   if (!req.user) {
     throw new UnauthorizedError('Authentication required');

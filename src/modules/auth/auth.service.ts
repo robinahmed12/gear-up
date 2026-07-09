@@ -98,6 +98,7 @@ export const updateProfile = async (userId: string, input: UpdateProfileInput) =
   });
 };
 
+// change password
 export const changePassword = async (userId: string, input: ChangePasswordInput): Promise<void> => {
   const user = await prisma.user.findUnique({ where: { id: userId } });
 
