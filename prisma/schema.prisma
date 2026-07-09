@@ -1,0 +1,231 @@
+// GearUp — Production Prisma Schema (Prisma ORM 7)
+//
+// Prisma 7 requires an explicit driver adapter (no bundled engine binary),
+// and generates a plain TS/JS client into a project folder instead of
+// node_modules. The DB connection URL now lives in prisma.config.ts,
+// not in this file — see that file for the datasource wiring.
+
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// ─────────────────────────────────────────────────────────────
+// Enums
+// ─────────────────────────────────────────────────────────────
+
+enum Role {
+  CUSTOMER
+  PROVIDER
+  ADMIN
+}
+
+enum UserStatus {
+  ACTIVE
+  SUSPENDED
+}
+
+enum RentalStatus {
+  PLACED
+  CONFIRMED
+  PAID
+  PICKED_UP
+  RETURNED
+  CANCELLED
+}
+
+enum PaymentStatus {
+  PENDING
+  COMPLETED
+  FAILED
+  REFUNDED
+}
+
+// Not one of the four mandatory enums, but modeling it as an enum
+// (rather than a free-text string) prevents typos like "stripe" vs
+// "Stripe" from ever reaching the database.
+enum PaymentMethod {
+  STRIPE
+  SSLCOMMERZ
+}
+
+// ─────────────────────────────────────────────────────────────
+// Models
+// ─────────────────────────────────────────────────────────────
+
+model User {
+  id        String     @id @default(uuid())
+  name      String
+  email     String     @unique
+  password  String
+  role      Role
+  status    UserStatus @default(ACTIVE)
+  phone     String?
+  createdAt DateTime   @default(now())
+  updatedAt DateTime   @updatedAt
+
+  // A user can be a provider (owns gear) and/or a customer (places orders)
+  // depending on `role`, but both relations live on the same model since
+  // role is decided at registration, not enforced structurally.
+  gearItems    Gear[]        @relation("ProviderGear")
+  rentalOrders RentalOrder[] @relation("CustomerRentals")
+  reviews      Review[]
+
+  // Frequent filters in the admin panel: "all suspended users",
+  // "all providers", etc.
+  @@index([role])
+  @@index([status])
+  @@map("users")
+}
+
+model Category {
+  id          String   @id @default(uuid())
+  name        String   @unique
+  description String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  gearItems Gear[]
+
+  @@map("categories")
+}
+
+model Gear {
+  id            String   @id @default(uuid())
+  title         String
+  description   String
+  brand         String?
+  pricePerDay   Decimal  @db.Decimal(10, 2)
+  stock         Int      @default(1)
+  isAvailable   Boolean  @default(true)
+  images        String[]
+  averageRating Float    @default(0)
+  reviewCount   Int      @default(0)
+  // Denormalized on purpose: Prisma can't ORDER BY an aggregate across a
+  // relation efficiently at scale. These two columns are recalculated by
+  // the Reviews module every time a review is created/updated/deleted,
+  // so "sort by rating" is a plain indexed column read, not a per-request
+  // aggregation over every review row.
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  categoryId String
+  category   Category @relation(fields: [categoryId], references: [id], onDelete: Restrict)
+  // Restrict (not Cascade): deleting a category that still has gear under
+  // it should fail loudly, forcing an admin to reassign or remove the
+  // gear first, rather than silently orphaning or nuking listings.
+
+  providerId String
+  provider   User   @relation("ProviderGear", fields: [providerId], references: [id], onDelete: Cascade)
+  // Cascade: if a provider account is deleted outright, their listings
+  // don't make sense to keep around. In practice most platforms prefer
+  // suspending providers instead of hard-deleting them, but this is the
+  // safe default if a hard delete does happen.
+
+  rentalOrders RentalOrder[]
+  reviews      Review[]
+
+  // Supports the "browse/filter gear" endpoints: by category, by
+  // provider's own inventory view, by availability, and price-range
+  // filtering/sorting.
+  @@index([categoryId])
+  @@index([providerId])
+  @@index([isAvailable])
+  @@index([pricePerDay])
+  @@index([averageRating])
+  @@index([brand])
+  @@map("gear_items")
+}
+
+model RentalOrder {
+  id          String       @id @default(uuid())
+  quantity    Int          @default(1)
+  startDate   DateTime
+  endDate     DateTime
+  totalDays   Int
+  // Computed once at creation from (endDate - startDate), rounded up to a
+  // whole day. Persisted rather than derived on every read so order
+  // history stays stable and cheap to query/sort.
+  pricePerDay Decimal      @db.Decimal(10, 2)
+  // Snapshotted from Gear.pricePerDay at order creation time, so a later
+  // price change by the provider never rewrites historical order totals.
+  totalAmount Decimal      @db.Decimal(10, 2)
+  status      RentalStatus @default(PLACED)
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+
+  customerId String
+  customer   User   @relation("CustomerRentals", fields: [customerId], references: [id], onDelete: Restrict)
+  // Restrict: rental history is financial/audit data. A customer account
+  // should be suspended, never hard-deleted, while orders reference it.
+
+  gearId String
+  gear   Gear   @relation(fields: [gearId], references: [id], onDelete: Restrict)
+  // Restrict: same reasoning — historical orders must keep pointing at a
+  // real gear record for auditing, even if that gear is later marked
+  // unavailable.
+
+  payment Payment?
+  review  Review?
+
+  @@index([customerId])
+  @@index([gearId])
+  @@index([status])
+  @@index([startDate, endDate])
+  @@map("rental_orders")
+}
+
+model Payment {
+  id            String        @id @default(uuid())
+  transactionId String        @unique
+  amount        Decimal       @db.Decimal(10, 2)
+  method        PaymentMethod
+  status        PaymentStatus @default(PENDING)
+  paidAt        DateTime?
+  rawResponse   Json?
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+
+  rentalOrderId String      @unique
+  rentalOrder   RentalOrder @relation(fields: [rentalOrderId], references: [id], onDelete: Cascade)
+  // Cascade: a Payment record has no independent meaning without its
+  // order — if the order is ever purged, its payment record should go
+  // with it (in practice orders are never hard-deleted, only cancelled).
+
+  @@index([status])
+  @@map("payments")
+}
+
+model Review {
+  id        String   @id @default(uuid())
+  rating    Int
+  comment   String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  customerId String
+  customer   User   @relation(fields: [customerId], references: [id], onDelete: Cascade)
+
+  gearId String
+  gear   Gear   @relation(fields: [gearId], references: [id], onDelete: Cascade)
+  // Cascade on both: a review is meaningless without the customer or the
+  // gear it's attached to, unlike Payment/RentalOrder which are financial
+  // records worth preserving.
+
+  rentalOrderId String?      @unique
+  rentalOrder   RentalOrder? @relation(fields: [rentalOrderId], references: [id], onDelete: SetNull)
+  // Links the review back to the specific order it came from, so the
+  // service layer can enforce "only after RETURNED". SetNull rather than
+  // Cascade/Restrict: if the order is ever removed, the review can stand
+  // on its own as historical feedback rather than being deleted too.
+
+  // One review per customer per gear item — prevents review spam even
+  // across multiple separate orders of the same item.
+  @@unique([customerId, gearId])
+  @@index([gearId])
+  @@map("reviews")
+}

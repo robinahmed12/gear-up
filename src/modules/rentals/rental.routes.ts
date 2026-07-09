@@ -1,0 +1,33 @@
+import { Router } from 'express';
+import * as rentalController from './rental.controller.js';
+import { validate } from '../../middlewares/validate.middleware.js';
+import { verifyTokenMiddleware } from '../../middlewares/auth.middleware.js';
+import { verifyRole } from '../../middlewares/role.middleware.js';
+import { Role } from '../../constants/roles.js';
+import { createRentalSchema, rentalIdParamSchema, rentalQuerySchema } from './rental.validation.js';
+
+const router = Router();
+
+router.use(verifyTokenMiddleware);
+
+router.post('/', verifyRole(Role.CUSTOMER), validate(createRentalSchema), rentalController.create);
+router.get(
+  '/',
+  verifyRole(Role.CUSTOMER),
+  validate(rentalQuerySchema, 'query'),
+  rentalController.listOwn,
+);
+
+// GET /:id is shared: a customer viewing their own order and a provider
+// viewing an order on their gear both land here — ownership is checked
+// inside the service (getRentalByIdForUser), not by role middleware.
+router.get('/:id', validate(rentalIdParamSchema, 'params'), rentalController.getById);
+
+router.patch(
+  '/:id/cancel',
+  verifyRole(Role.CUSTOMER),
+  validate(rentalIdParamSchema, 'params'),
+  rentalController.cancel,
+);
+
+export default router;
