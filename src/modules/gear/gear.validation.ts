@@ -43,22 +43,35 @@ const gearQueryBaseSchema = z.object({
   sortOrder: z.enum(['asc', 'desc']).default('desc'),
 });
 
-const priceRangeRefinement = {
-  check: (data: { minPrice?: number; maxPrice?: number }) =>
-    data.minPrice === undefined || data.maxPrice === undefined || data.minPrice <= data.maxPrice,
-  options: { message: 'minPrice cannot be greater than maxPrice', path: ['minPrice'] as const },
-};
+// const priceRangeRefinement = {
+//   check: (data: { minPrice?: number; maxPrice?: number }) =>
+//     data.minPrice === undefined || data.maxPrice === undefined || data.minPrice <= data.maxPrice,
+//   options: { message: 'minPrice cannot be greater than maxPrice', path: ['minPrice'] as const },
+// };
 
 export const gearQuerySchema = gearQueryBaseSchema.refine(
-  priceRangeRefinement.check,
-  priceRangeRefinement.options,
+  (data) =>
+    data.minPrice === undefined || data.maxPrice === undefined || data.minPrice <= data.maxPrice,
+  {
+    message: 'minPrice cannot be greater than maxPrice',
+    path: ['minPrice'],
+  },
 );
 
 // Admin oversight can additionally slice by provider, which the public
 // listing never needs since browsing gear has no concept of "mine".
 export const adminGearQuerySchema = gearQueryBaseSchema
-  .extend({ providerId: uuid.optional() })
-  .refine(priceRangeRefinement.check, priceRangeRefinement.options);
+  .extend({
+    providerId: uuid.optional(),
+  })
+  .refine(
+    (data) =>
+      data.minPrice === undefined || data.maxPrice === undefined || data.minPrice <= data.maxPrice,
+    {
+      message: 'minPrice cannot be greater than maxPrice',
+      path: ['minPrice'],
+    },
+  );
 
 export type CreateGearInput = z.infer<typeof createGearSchema>;
 export type UpdateGearInput = z.infer<typeof updateGearSchema>;
