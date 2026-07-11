@@ -1,6 +1,6 @@
 {
   "compilerOptions": {
-     "module": "esnext",
+    "module": "esnext",
     "target": "esnext",
     "moduleResolution": "bundler",
     "types": ["node"],
