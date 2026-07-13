@@ -25,6 +25,8 @@ router.put(
   validate(updateGearSchema),
   gearController.update,
 );
+
+// delete router
 router.delete('/:id', validate(gearIdParamSchema, 'params'), gearController.remove);
 
 export default router;

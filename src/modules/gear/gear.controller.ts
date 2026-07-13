@@ -4,6 +4,7 @@ import { sendSuccess } from '../../utils/ApiResponse.js';
 import { UnauthorizedError } from '../../errors/UnauthorizedError.js';
 import * as gearService from './gear.service.js';
 
+// get all gear item 
 export const list = catchAsync(async (req: Request, res: Response) => {
   const { items, meta } = await gearService.listGear(req.query as never);
 
@@ -14,6 +15,7 @@ export const list = catchAsync(async (req: Request, res: Response) => {
   });
 });
 
+// get all gear item by id 
 export const getById = catchAsync(async (req: Request, res: Response) => {
   const gear = await gearService.getGearById(req.params.id);
 
@@ -23,6 +25,7 @@ export const getById = catchAsync(async (req: Request, res: Response) => {
   });
 });
 
+// crate gear item 
 export const create = catchAsync(async (req: Request, res: Response) => {
   if (!req.user) throw new UnauthorizedError();
 
@@ -35,6 +38,7 @@ export const create = catchAsync(async (req: Request, res: Response) => {
   });
 });
 
+// update gear item 
 export const update = catchAsync(async (req: Request, res: Response) => {
   if (!req.user) throw new UnauthorizedError();
 
@@ -46,6 +50,7 @@ export const update = catchAsync(async (req: Request, res: Response) => {
   });
 });
 
+// deleted gear item 
 export const remove = catchAsync(async (req: Request, res: Response) => {
   if (!req.user) throw new UnauthorizedError();
 
@@ -67,6 +72,9 @@ export const listOwn = catchAsync(async (req: Request, res: Response) => {
     meta,
   });
 });
+
+
+// get all gear for admin 
 
 export const listAllForAdmin = catchAsync(async (req: Request, res: Response) => {
   const { items, meta } = await gearService.listGearForAdmin(req.query as never);
