@@ -47,7 +47,7 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
 // --- Health check ---
-app.get('/api/health', (_req: Request, res: Response) => {
+app.get('/', (_req: Request, res: Response) => {
   sendSuccess(res, { message: 'GearUp API is up and running', data: { uptime: process.uptime() } });
 });
 

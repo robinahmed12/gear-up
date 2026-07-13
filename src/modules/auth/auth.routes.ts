@@ -20,6 +20,7 @@ router.patch(
   validate(updateProfileSchema),
   authController.updateProfile,
 );
+// reset password
 router.patch(
   '/me/password',
   verifyTokenMiddleware,
