@@ -16,6 +16,8 @@ export const create = catchAsync(async (req: Request, res: Response) => {
   });
 });
 
+// get customer rental order 
+
 export const listOwn = catchAsync(async (req: Request, res: Response) => {
   if (!req.user) throw new UnauthorizedError();
 
@@ -28,6 +30,7 @@ export const listOwn = catchAsync(async (req: Request, res: Response) => {
   });
 });
 
+// get by id
 export const getById = catchAsync(async (req: Request, res: Response) => {
   if (!req.user) throw new UnauthorizedError();
 
@@ -39,6 +42,7 @@ export const getById = catchAsync(async (req: Request, res: Response) => {
   });
 });
 
+// delete rental order 
 export const cancel = catchAsync(async (req: Request, res: Response) => {
   if (!req.user) throw new UnauthorizedError();
 
@@ -50,6 +54,7 @@ export const cancel = catchAsync(async (req: Request, res: Response) => {
   });
 });
 
+// get rental order for provider 
 export const listProviderOrders = catchAsync(async (req: Request, res: Response) => {
   if (!req.user) throw new UnauthorizedError();
 
