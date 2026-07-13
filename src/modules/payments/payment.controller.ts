@@ -39,6 +39,8 @@ export const create = catchAsync(async (req: Request, res: Response) => {
   });
 });
 
+// get payment history
+
 export const listOwn = catchAsync(async (req: Request, res: Response) => {
   if (!req.user) throw new UnauthorizedError();
 

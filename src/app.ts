@@ -51,7 +51,7 @@ app.get('/api/health', (_req: Request, res: Response) => {
   sendSuccess(res, { message: 'GearUp API is up and running', data: { uptime: process.uptime() } });
 });
 
-// --- Feature routes (mount as each module is implemented) ---
+// --- Feature routes ---
 app.use('/api/auth', authRoutes);
 app.use('/api/gear', gearRoutes);
 app.use('/api/provider/gear', providerGearRoutes);

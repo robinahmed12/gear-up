@@ -17,7 +17,6 @@ export const paymentQuerySchema = z.object({
 });
 
 // Stripe is the only method wired up in this phase — the enum still
-// accepts SSLCOMMERZ (schema-level) but the service layer rejects it with
 // a clear "not yet supported" error rather than pretending to process it.
 export const createPaymentSchema = z.object({
   rentalOrderId: uuid,
