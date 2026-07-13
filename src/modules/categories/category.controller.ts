@@ -11,7 +11,7 @@ export const list = catchAsync(async (_req: Request, res: Response) => {
     data: categories,
   });
 });
-
+// fetch category by id 
 export const getById = catchAsync(async (req: Request, res: Response) => {
   const category = await categoryService.getCategoryById(req.params.id);
 
@@ -21,6 +21,7 @@ export const getById = catchAsync(async (req: Request, res: Response) => {
   });
 });
 
+// create category 
 export const create = catchAsync(async (req: Request, res: Response) => {
   const category = await categoryService.createCategory(req.body);
 
@@ -31,6 +32,7 @@ export const create = catchAsync(async (req: Request, res: Response) => {
   });
 });
 
+// update category
 export const update = catchAsync(async (req: Request, res: Response) => {
   const category = await categoryService.updateCategory(req.params.id, req.body);
 
