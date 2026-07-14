@@ -4,6 +4,14 @@ import { sendSuccess } from '../../utils/ApiResponse.js';
 import { UnauthorizedError } from '../../errors/UnauthorizedError.js';
 import * as rentalService from './rental.service.js';
 
+/**
+ * Controller: create
+ * ------------------
+ * Places a new rental order for the authenticated customer.
+ * - Requires a logged-in user (throws UnauthorizedError if missing).
+ * - Delegates order creation to rentalService.
+ * - Responds with a 201 status and the created order details.
+ */
 export const create = catchAsync(async (req: Request, res: Response) => {
   if (!req.user) throw new UnauthorizedError();
 
@@ -16,8 +24,14 @@ export const create = catchAsync(async (req: Request, res: Response) => {
   });
 });
 
-// get customer rental order 
-
+/**
+ * Controller: listOwn
+ * -------------------
+ * Retrieves rental orders belonging to the authenticated customer.
+ * - Requires a logged-in user.
+ * - Supports query parameters for pagination/filtering.
+ * - Delegates retrieval to rentalService.
+ */
 export const listOwn = catchAsync(async (req: Request, res: Response) => {
   if (!req.user) throw new UnauthorizedError();
 
@@ -30,7 +44,14 @@ export const listOwn = catchAsync(async (req: Request, res: Response) => {
   });
 });
 
-// get by id
+/**
+ * Controller: getById
+ * -------------------
+ * Retrieves details of a specific rental order for the authenticated user.
+ * - Requires a logged-in user.
+ * - Accepts order ID from route params.
+ * - Delegates retrieval to rentalService.
+ */
 export const getById = catchAsync(async (req: Request, res: Response) => {
   if (!req.user) throw new UnauthorizedError();
 
@@ -42,7 +63,14 @@ export const getById = catchAsync(async (req: Request, res: Response) => {
   });
 });
 
-// delete rental order 
+/**
+ * Controller: cancel
+ * ------------------
+ * Cancels a rental order for the authenticated customer.
+ * - Requires a logged-in user.
+ * - Accepts order ID from route params.
+ * - Delegates cancellation to rentalService.
+ */
 export const cancel = catchAsync(async (req: Request, res: Response) => {
   if (!req.user) throw new UnauthorizedError();
 
@@ -54,7 +82,14 @@ export const cancel = catchAsync(async (req: Request, res: Response) => {
   });
 });
 
-// get rental order for provider 
+/**
+ * Controller: listProviderOrders
+ * ------------------------------
+ * Retrieves incoming rental orders for a provider (gear owner).
+ * - Requires a logged-in user.
+ * - Supports query parameters for pagination/filtering.
+ * - Delegates retrieval to rentalService.
+ */
 export const listProviderOrders = catchAsync(async (req: Request, res: Response) => {
   if (!req.user) throw new UnauthorizedError();
 
@@ -67,6 +102,14 @@ export const listProviderOrders = catchAsync(async (req: Request, res: Response)
   });
 });
 
+/**
+ * Controller: updateStatus
+ * ------------------------
+ * Updates the status of a rental order (e.g., accepted, rejected, completed).
+ * - Requires a logged-in user.
+ * - Accepts order ID from route params and status payload from request body.
+ * - Delegates update logic to rentalService.
+ */
 export const updateStatus = catchAsync(async (req: Request, res: Response) => {
   if (!req.user) throw new UnauthorizedError();
 
@@ -78,6 +121,14 @@ export const updateStatus = catchAsync(async (req: Request, res: Response) => {
   });
 });
 
+/**
+ * Controller: listAllForAdmin
+ * ---------------------------
+ * Retrieves all rental orders for administrative purposes.
+ * - Does not require authentication (assumed admin middleware handles access).
+ * - Supports query parameters for pagination/filtering.
+ * - Delegates retrieval to rentalService.
+ */
 export const listAllForAdmin = catchAsync(async (req: Request, res: Response) => {
   const { items, meta } = await rentalService.getAllRentalsForAdmin(req.query as never);
 
