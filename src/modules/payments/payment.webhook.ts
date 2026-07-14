@@ -9,22 +9,25 @@ import * as paymentService from './payment.service.js';
 const router = Router();
 
 /**
- * Stripe's actual "confirm" step happens client-side (Stripe.js calls
- * stripe.confirmCardPayment(clientSecret) directly against Stripe) —
- * there's deliberately no POST /api/payments/confirm for Stripe. This
- * webhook is the only trustworthy place a PaymentIntent's real outcome
- * ever reaches our server, since it's signed by Stripe and can't be
- * spoofed by a client claiming "it succeeded, trust me".
+ * Stripe Webhook Route
+ * --------------------
+ * Handles incoming webhook events from Stripe.
  *
- * Must be mounted in app.ts with `express.raw({ type: 'application/json' })`
- * BEFORE the global `express.json()` middleware — signature verification
- * needs the exact raw request bytes, not the parsed/re-serialized body.
+ * Key points:
+ * - Stripe confirms PaymentIntent outcomes client-side (via Stripe.js),
+ *   but the webhook is the only trusted server-side source of truth.
+ * - Webhook requests are signed by Stripe; signature verification ensures
+ *   authenticity and prevents spoofing.
+ * - Must be mounted in `app.ts` with `express.raw({ type: 'application/json' })`
+ *   BEFORE global `express.json()` middleware, since verification requires
+ *   the raw request body.
  */
 router.post(
   '/stripe',
   catchAsync(async (req: Request, res: Response) => {
     const signature = req.headers['stripe-signature'];
 
+    // Ensure the signature header is present
     if (!signature || typeof signature !== 'string') {
       res.status(400).json({ success: false, message: 'Missing Stripe-Signature header' });
       return;
@@ -32,6 +35,7 @@ router.post(
 
     let event: Stripe.Event;
     try {
+      // Verify the event using Stripe's SDK and the webhook secret
       event = stripe.webhooks.constructEvent(req.body, signature, env.STRIPE_WEBHOOK_SECRET);
     } catch (err) {
       logger.warn(`Stripe webhook signature verification failed: ${(err as Error).message}`);
@@ -39,6 +43,7 @@ router.post(
       return;
     }
 
+    // Handle relevant event types
     switch (event.type) {
       case 'payment_intent.succeeded':
         await paymentService.handleStripePaymentSucceeded(
@@ -49,16 +54,14 @@ router.post(
         await paymentService.handleStripePaymentFailed(event.data.object as Stripe.PaymentIntent);
         break;
       default:
-        // Unhandled event types are acknowledged, not treated as errors —
-        // Stripe sends far more event types than this module cares about.
+        // Unhandled events are acknowledged but logged for visibility
         logger.info(`Unhandled Stripe webhook event: ${event.type}`);
     }
 
-    // Stripe only cares about the 2xx/non-2xx distinction; it retries on
-    // anything else. Acknowledging with 200 here (rather than routing
-    // through sendSuccess's richer envelope) keeps that contract obvious.
+    // Respond with 200 to acknowledge receipt; Stripe retries on non-2xx
     res.status(200).json({ received: true });
   }),
 );
 
 export default router;
+
