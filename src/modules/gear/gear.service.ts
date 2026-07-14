@@ -34,9 +34,12 @@ const gearListSelect = {
 } satisfies Prisma.GearSelect;
 
 /**
- * Builds the Prisma `where` clause for the public gear listing from
- * validated query params. Kept separate from the main list function so
- * it's independently readable/testable.
+ * Utility: buildGearWhere
+ * -----------------------
+ * Constructs the Prisma `where` clause for public gear listings.
+ * - Supports search by title/brand.
+ * - Filters by category, availability, and price range.
+ * - Kept separate for readability and testability.
  */
 const buildGearWhere = (query: GearQueryInput): Prisma.GearWhereInput => {
   const where: Prisma.GearWhereInput = {};
@@ -66,6 +69,12 @@ const buildGearWhere = (query: GearQueryInput): Prisma.GearWhereInput => {
   return where;
 };
 
+/**
+ * Utility: buildGearOrderBy
+ * -------------------------
+ * Maps sort options to Prisma `orderBy` clauses.
+ * - Supports sorting by price, rating, or newest.
+ */
 const buildGearOrderBy = (
   sortBy: GearQueryInput['sortBy'],
   sortOrder: GearQueryInput['sortOrder'],
@@ -81,6 +90,11 @@ const buildGearOrderBy = (
   }
 };
 
+/**
+ * Service: listGear
+ * -----------------
+ * Public gear listing with pagination, filtering, and sorting.
+ */
 export const listGear = async (
   query: GearQueryInput,
 ): Promise<{ items: unknown[]; meta: PaginationMeta }> => {
@@ -96,6 +110,12 @@ export const listGear = async (
   return { items, meta: buildPaginationMeta(query, total) };
 };
 
+/**
+ * Service: getGearById
+ * --------------------
+ * Retrieves a single gear item by ID.
+ * - Throws NotFoundError if gear does not exist.
+ */
 export const getGearById = async (id: string) => {
   const gear = await prisma.gear.findUnique({ where: { id }, select: gearListSelect });
 
@@ -107,9 +127,10 @@ export const getGearById = async (id: string) => {
 };
 
 /**
- * Confirms the category exists before creating gear against it — without
- * this check, a bad categoryId would surface as an opaque Prisma P2003
- * foreign-key error instead of a clear validation message.
+ * Utility: assertCategoryExists
+ * -----------------------------
+ * Ensures the category exists before creating/updating gear.
+ * - Prevents opaque Prisma foreign-key errors (P2003).
  */
 const assertCategoryExists = async (categoryId: string): Promise<void> => {
   const category = await prisma.category.findUnique({ where: { id: categoryId } });
@@ -118,6 +139,12 @@ const assertCategoryExists = async (categoryId: string): Promise<void> => {
   }
 };
 
+/**
+ * Service: createGear
+ * -------------------
+ * Creates a new gear item for a provider.
+ * - Validates category existence.
+ */
 export const createGear = async (providerId: string, input: CreateGearInput) => {
   await assertCategoryExists(input.categoryId);
 
@@ -128,12 +155,12 @@ export const createGear = async (providerId: string, input: CreateGearInput) => 
 };
 
 /**
- * Shared ownership guard for update/delete: fetches the gear and throws
- * NotFoundError if it doesn't exist, or ForbiddenError if it exists but
- * belongs to a different provider. Distinguishing 404 vs 403 (rather than
- * always 404) gives honest feedback without leaking *other providers'*
- * gear IDs as a side channel — the requester already knows the ID since
- * they supplied it.
+ * Utility: assertOwnership
+ * ------------------------
+ * Ownership guard for update/delete operations.
+ * - Throws NotFoundError if gear does not exist.
+ * - Throws ForbiddenError if gear belongs to another provider.
+ * - Distinguishes 404 vs 403 for honest feedback without leaking IDs.
  */
 const assertOwnership = async (gearId: string, providerId: string): Promise<void> => {
   const gear = await prisma.gear.findUnique({
@@ -150,6 +177,12 @@ const assertOwnership = async (gearId: string, providerId: string): Promise<void
   }
 };
 
+/**
+ * Service: updateGear
+ * -------------------
+ * Updates an existing gear item.
+ * - Validates ownership and category existence.
+ */
 export const updateGear = async (gearId: string, providerId: string, input: UpdateGearInput) => {
   await assertOwnership(gearId, providerId);
 
@@ -164,12 +197,25 @@ export const updateGear = async (gearId: string, providerId: string, input: Upda
   });
 };
 
+/**
+ * Service: deleteGear
+ * -------------------
+ * Deletes a gear item.
+ * - Validates ownership before deletion.
+ */
 export const deleteGear = async (gearId: string, providerId: string): Promise<void> => {
   await assertOwnership(gearId, providerId);
 
   await prisma.gear.delete({ where: { id: gearId } });
 };
 
+/**
+ * Service: listProviderGear
+ * -------------------------
+ * Lists gear items belonging to a specific provider.
+ * - Scoped by providerId.
+ * - Supports filtering, sorting, and pagination.
+ */
 export const listProviderGear = async (providerId: string, query: GearQueryInput) => {
   const where: Prisma.GearWhereInput = { ...buildGearWhere(query), providerId };
   const orderBy = buildGearOrderBy(query.sortBy, query.sortOrder);
@@ -184,10 +230,12 @@ export const listProviderGear = async (providerId: string, query: GearQueryInput
 };
 
 /**
- * Platform-wide gear oversight for admins — no ownership scoping, unlike
- * listProviderGear which is always filtered down to "mine". Admins can
- * additionally slice by provider, and (unlike the public listing) can
- * see unavailable/out-of-stock gear by simply omitting isAvailable.
+ * Service: listGearForAdmin
+ * -------------------------
+ * Platform-wide gear listing for admins.
+ * - No ownership scoping (admins can view all gear).
+ * - Supports filtering by providerId.
+ * - Unlike public listing, includes unavailable/out-of-stock gear.
  */
 export const listGearForAdmin = async (
   query: AdminGearQueryInput,
