@@ -10,7 +10,9 @@ const router = Router();
 
 router.use(verifyTokenMiddleware);
 
+
 router.post('/', verifyRole(Role.CUSTOMER), validate(createRentalSchema), rentalController.create);
+// rental get route 
 router.get(
   '/',
   verifyRole(Role.CUSTOMER),
@@ -23,6 +25,7 @@ router.get(
 // inside the service (getRentalByIdForUser), not by role middleware.
 router.get('/:id', validate(rentalIdParamSchema, 'params'), rentalController.getById);
 
+// update rental route 
 router.patch(
   '/:id/cancel',
   verifyRole(Role.CUSTOMER),
