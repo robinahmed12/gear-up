@@ -8,14 +8,33 @@ import { rentalIdParamSchema, adminRentalQuerySchema } from './rental.validation
 
 const router = Router();
 
-// Every route in this file requires an ADMIN token — applied once here
-// rather than repeated per-route, matching the provider-order pattern.
+/**
+ * Admin Rental Routes
+ * -------------------
+ * All routes in this file are restricted to ADMIN users.
+ * - Token verification and role check are applied globally via router.use().
+ * - Routes provide administrative access to rental orders, including listing
+ *   all orders and retrieving details by ID.
+ */
 router.use(verifyTokenMiddleware, verifyRole(Role.ADMIN));
 
+/**
+ * GET /
+ * -----
+ * Retrieves all rental orders for administrative purposes.
+ * - Supports query parameters for filtering, sorting, and pagination.
+ * - Validates query against adminRentalQuerySchema.
+ */
 router.get('/', validate(adminRentalQuerySchema, 'query'), rentalController.listAllForAdmin);
-// getById reuses the same handler customers/providers hit — it already
-// grants access when the requester's role is ADMIN, on top of the
-// ownership check used for the other two roles.
+
+/**
+ * GET /:id
+ * --------
+ * Retrieves details of a specific rental order by ID.
+ * - Validates route params against rentalIdParamSchema.
+ * - Reuses the same controller handler used by customers/providers,
+ *   but grants access when requester has ADMIN role.
+ */
 router.get('/:id', validate(rentalIdParamSchema, 'params'), rentalController.getById);
 
 export default router;
