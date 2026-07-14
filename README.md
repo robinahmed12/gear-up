@@ -1,31 +1,52 @@
 # GearUp Backend
 
-Sports & outdoor gear rental API. Node.js · Express · TypeScript · PostgreSQL · Prisma ORM 7 · JWT · Stripe · Zod
+**Sports & Outdoor Gear Rental API**  
+Built with **Node.js · Express · TypeScript · PostgreSQL · Prisma ORM v7 · JWT · Stripe · Zod**
 
-**Implemented so far:** project foundation & error handling (Phase 1), auth module incl. profile management (Phase 2), full production Prisma schema (Phase 4 schema), Gear module (Phase 3), Rental Order module with status state machine (Phase 4), Reviews module, Categories module (public + admin CRUD), Admin module (users, categories, gear oversight, rental oversight, payment oversight), Payments module (Stripe — create + webhook).
-**Not yet implemented:** SSLCommerz payment method (schema/validation already accept it; the service layer returns a clear "not supported yet" error until it's built).
+---
 
-## ⚠️ Running on Prisma 7 — what that means for you
+## 🚀 Project Overview
 
-Prisma 7 is a major architectural change from v6, not just a version bump:
+GearUp is a backend service for managing sports and outdoor gear rentals. It provides a robust API for customers, providers, and administrators, covering authentication, gear listings, rental orders, reviews, payments, and platform oversight.
 
-- **No more Rust engine binary** for the query runtime — Prisma Client is now TypeScript/WASM. This project requires an explicit **driver adapter** (`@prisma/adapter-pg` + `pg`) instead of an auto-managed engine.
-- **Client generates to a project folder**, not `node_modules` — see `generator client { output = "../src/generated/prisma" }` in the schema. That folder is gitignored; run `npm run prisma:generate` after cloning.
-- **The datasource URL moved out of `schema.prisma`** and into `prisma.config.ts` at the project root.
-- **The project runs as an ES module** (`"type": "module"`), using `tsx` to run TypeScript directly instead of `tsc` build + `node dist/`. `tsconfig.json` uses `moduleResolution: "bundler"` (matching Prisma's own migration guide), so existing relative imports resolve correctly without a project-wide rewrite.
-  - **Trade-off, stated plainly:** running `tsx` in production instead of a compiled `dist/` build adds a small per-process startup cost. Negligible at this scale; swap in `tsup`/`esbuild` later for a true compiled artifact if you want one — no application code changes needed.
+### Current Implementation
+- ✅ Project foundation & error handling (Phase 1)  
+- ✅ Authentication & profile management (Phase 2)  
+- ✅ Gear module (Phase 3)  
+- ✅ Rental Order module with status state machine (Phase 4)  
+- ✅ Reviews & Categories modules (public + admin CRUD)  
+- ✅ Admin module (users, categories, gear, rentals, payments)  
+- ✅ Payments module (Stripe integration: create + webhook)  
 
-## Getting Started
+### Pending Work
+- ❌ **SSLCommerz payment method** — schema/validation already supports it, but the service layer currently returns a “not supported yet” error.
+
+---
+
+## ⚙️ Prisma 7 Notes
+
+Prisma v7 introduces major architectural changes:
+
+- **No Rust engine binary** — Prisma Client now runs in TypeScript/WASM. Requires explicit driver adapter (`@prisma/adapter-pg` + `pg`).  
+- **Client output** — generated into `src/generated/prisma` (gitignored). Run `npm run prisma:generate` after cloning.  
+- **Datasource config** — moved to `prisma.config.ts` at project root.  
+- **ESM runtime** — project runs as an ES module (`"type": "module"`) using `tsx`.  
+  - Trade-off: Slight startup overhead vs compiled builds. For production optimization, swap in `tsup` or `esbuild` later without code changes.
+
+---
+
+## 🛠️ Getting Started
 
 ```bash
 npm install
 cp .env.example .env
-# fill in DATABASE_URL, JWT_SECRET, STRIPE_SECRET_KEY, STRIPE_WEBHOOK_SECRET
+# Fill in DATABASE_URL, JWT_SECRET, STRIPE_SECRET_KEY, STRIPE_WEBHOOK_SECRET
 
 npm run prisma:generate
 npm run prisma:migrate -- --name init
 npm run prisma:seed
 npm run dev
+
 ```
 
 Server starts on `http://localhost:5000`. Check `GET /api/health` to confirm it's alive.
